@@ -176,7 +176,7 @@ def list_data_objects():
 
     :return:
     """
-    return Response(status_code=405)
+    return Response(body='', status_code=405)
 
 
 @app.route('/ga4gh/dos/v1/databundles/list', methods=['POST'], cors=True)
