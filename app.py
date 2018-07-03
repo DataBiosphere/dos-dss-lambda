@@ -168,7 +168,7 @@ def get_data_object(data_object_id):
                 pass
     return {'data_object': data_object}
 
-@app.route('/ga4gh/dos/v1/dataobjects/list', methods=['POST'], cors=True)
+@app.route('/ga4gh/dos/v1/dataobjects', methods=['GET'], cors=True)
 def list_data_objects():
     """
     This endpoint translates DOS List requests into requests against DSS
@@ -179,7 +179,7 @@ def list_data_objects():
     return Response(status_code=405)
 
 
-@app.route('/ga4gh/dos/v1/databundles/list', methods=['POST'], cors=True)
+@app.route('/ga4gh/dos/v1/databundles', methods=['GET'], cors=True)
 def list_data_bundles():
     """
     This endpoint translates DOS List requests into requests against DSS
@@ -187,7 +187,7 @@ def list_data_bundles():
 
     :return:
     """
-    req_body = app.current_request.json_body
+    req_body = app.current_request.query_params
     per_page = 10
     page_token = None
     next_page_token = None
