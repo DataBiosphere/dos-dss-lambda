@@ -13,7 +13,7 @@ following the [OpenAPI description](https://spbnq0bc10.execute-api.us-west-2.ama
 
 ```
 # Will request the first page of Data Bundles from the service.
-curl https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api/ga4gh/dos/v1/dataobjects
+curl https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api/ga4gh/dos/v1/databundles
 ```
 
 There is also a Python client available, that makes it easier to use the service from code.
