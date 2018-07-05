@@ -7,23 +7,23 @@ to be accessed using Data Object Service APIs.
 
 ## Using the service
 
-A development version of this service is available at https://spbnq0bc10.execute-api.us-west-2.amazonaws.com/api/ .
+A development version of this service is available at https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api/ .
 To make proper use of the service, one can either use cURL or an HTTP client to write API requests
 following the [OpenAPI description](https://spbnq0bc10.execute-api.us-west-2.amazonaws.com/api/swagger.json).
 
 ```
 # Will request the first page of Data Bundles from the service.
-curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{}' 'https://spbnq0bc10.execute-api.us-west-2.amazonaws.com/api/ga4gh/dos/v1/databundles/list'
+curl https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api/ga4gh/dos/v1/dataobjects
 ```
 
 There is also a Python client available, that makes it easier to use the service from code.
 
 ```
 from ga4gh.dos.client import Client
-client = Client("https://spbnq0bc10.execute-api.us-west-2.amazonaws.com/api")
+client = Client("https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api/")
 local_client = client.client
 models = client.models
-local_client.ListDataBundles(body={}).result()
+local_client.ListDataBundles().result()
 ```
 
 For more information refer to the [Data Object Service](https://github.com/ga4gh/data-object-service-schemas).
