@@ -3,7 +3,6 @@
 
 import unittest
 import os
-import shutil
 import json
 import requests
 from pprint import pprint
@@ -49,7 +48,6 @@ class Test_RemoteToBag(unittest.TestCase):
 
     def tearDown(self):
         os.remove('rfm.json')
-        #shutil.rmtree('bag_path')
 
     def test_list_from_loaded_jsonfile(self):
         with open(self.rfm_fname) as fp:
@@ -57,7 +55,7 @@ class Test_RemoteToBag(unittest.TestCase):
         self.assertListEqual(self.remote_file_manifest, rfm)
 
     def test_make_bag_api(self):
-        """This is not a test of a method in RemoteToBag class!! It only
+        """This is NOT a test of a method in RemoteToBag class!! It only
         tests whether we can create a bag from the remote-file-manifest at
         all."""
         bdbag_api.ensure_bag_path_exists(self.bag_path)
