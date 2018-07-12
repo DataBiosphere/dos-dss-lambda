@@ -6,12 +6,17 @@ import os
 import json
 import requests
 from pprint import pprint
-from remote_to_bag import RemoteToBag
+from remote_to_bag import DSSBundle as Bundle
+from remote_to_bag import DSSDataObject as DataObject
+from remote_to_bag import create_rfm_from_data_objects
 from bdbag import bdbag_api
 
 class Test_RemoteToBag(unittest.TestCase):
 
     def setUp(self):
+
+        # It turns out that the creation of a bag with this package
+        # only works if each file has the same number of checksums.
         self.remote_file_manifest = [
             {
                 "url":"https://raw.githubusercontent.com/fair-research/bdbag/master/profiles/bdbag-profile.json",
@@ -32,19 +37,25 @@ class Test_RemoteToBag(unittest.TestCase):
             json.dump(self.remote_file_manifest, fp)
         self.bag_path = os.path.join(os.getcwd(), 'bag_path')
 
-        # Get data objects.
-        service_url = "https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api"
-        base_url = "ga4gh/dos/v1"
-        list_data_bundles_url = "{}/{}/{}".format(service_url, base_url,
-                                                  "databundles")
-        data_bundles = requests.get(list_data_bundles_url).json()['data_bundles']
-        data_bundle_url = "{}/{}/databundles/{}".format(service_url, base_url,
-                                                        data_bundles[0]['id'])
-        self.data_bundle = requests.get(data_bundle_url).json()['data_bundle']
-        self.data_object_id = self.data_bundle['data_object_ids'][0]
-        data_object_url = "{}/{}/dataobjects/{}".format(service_url, base_url,
-                                                        self.data_object_id)
-        self.data_object = requests.get(data_object_url).json()['data_object']
+        # Set URLs to data bundles.
+        self.service_url = \
+            "https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api"
+        self.base_url = "ga4gh/dos/v1"
+
+        # list_data_bundles_url = "{}/{}/{}".format(self.service_url, self.base_url,
+        #                                           "databundles")
+        # self.data_bundles = \
+        #     requests.get(list_data_bundles_url).json()['data_bundles']
+        # data_bundle_url = "{}/{}/databundles/{}".format(
+        #     self.service_url,
+        #     self.base_url,
+        #     self.data_bundles[0]['id'])
+        # self.data_bundle = requests.get(data_bundle_url).json()['data_bundle']
+        # self.data_object_id = self.data_bundle['data_object_ids'][0]
+        # data_object_url = "{}/{}/dataobjects/{}".format(self.service_url,
+        #                                                 self.base_url,
+        #                                                 self.data_object_id)
+        # self.data_object = requests.get(data_object_url).json()['data_object']
 
     def tearDown(self):
         os.remove('rfm.json')
@@ -66,5 +77,32 @@ class Test_RemoteToBag(unittest.TestCase):
     def test_import_object(self):
         pprint(self.data_object)
 
-    def test_create_manifest(self):
-        pass
+    def test_create_rfm_from_data_objects(self):
+
+        #databundle = Bundle(self.base_url, self.service_url)
+        #pprint(databundle.get_url())
+        #pprint(databundle.get_list())
+        #pprint(databundle.get_data_bundle(0))
+        #pprint(databundle.list_data_object_ids(0))
+
+        data_object_id = '8ff23235-4435-4929-8fb2-5d55b4564999'
+        #dataobject = DataObject(self.base_url, self.service_url, data_object_id)
+        #pprint(dataobject.get_object())
+
+        dataobjid = create_rfm_from_data_objects(self.base_url,
+                                                 self.service_url,
+                                                 data_object_id)
+        print(dataobjid)
+
+        # # Create remote-to-bag instance.
+        # rtb = RemoteToBag(self.base_url, self.service_url)
+        # print(rtb.get_data_bundles_url())
+        # pprint(rtb.get_data_bundles_list())
+        # bundle = rtb.get_data_bundle(1)
+        # pprint(bundle)
+        # pprint(bundle['id'])
+        # pprint(rtb.get_data_object(data_bundle_idx=1))
+
+
+
+
