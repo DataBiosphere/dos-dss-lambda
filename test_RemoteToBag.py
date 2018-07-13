@@ -42,21 +42,6 @@ class Test_RemoteToBag(unittest.TestCase):
             "https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api"
         self.base_url = "ga4gh/dos/v1"
 
-        # list_data_bundles_url = "{}/{}/{}".format(self.service_url, self.base_url,
-        #                                           "databundles")
-        # self.data_bundles = \
-        #     requests.get(list_data_bundles_url).json()['data_bundles']
-        # data_bundle_url = "{}/{}/databundles/{}".format(
-        #     self.service_url,
-        #     self.base_url,
-        #     self.data_bundles[0]['id'])
-        # self.data_bundle = requests.get(data_bundle_url).json()['data_bundle']
-        # self.data_object_id = self.data_bundle['data_object_ids'][0]
-        # data_object_url = "{}/{}/dataobjects/{}".format(self.service_url,
-        #                                                 self.base_url,
-        #                                                 self.data_object_id)
-        # self.data_object = requests.get(data_object_url).json()['data_object']
-
     def tearDown(self):
         os.remove('rfm.json')
 
@@ -74,9 +59,6 @@ class Test_RemoteToBag(unittest.TestCase):
                            algs=['sha256'],
                            remote_file_manifest=self.rfm_fname)
 
-    def test_import_object(self):
-        pprint(self.data_object)
-
     def test_create_rfm_from_data_objects(self):
 
         #databundle = Bundle(self.base_url, self.service_url)
@@ -86,13 +68,16 @@ class Test_RemoteToBag(unittest.TestCase):
         #pprint(databundle.list_data_object_ids(0))
 
         data_object_id = '8ff23235-4435-4929-8fb2-5d55b4564999'
-        #dataobject = DataObject(self.base_url, self.service_url, data_object_id)
+        dataobject = DataObject(self.base_url, self.service_url, data_object_id)
         #pprint(dataobject.get_object())
 
         dataobjid = create_rfm_from_data_objects(self.base_url,
                                                  self.service_url,
                                                  data_object_id)
         print(dataobjid)
+
+        json_fname = 'test_data_object.json'
+        dataobject.to_disk(json_fname)
 
         # # Create remote-to-bag instance.
         # rtb = RemoteToBag(self.base_url, self.service_url)

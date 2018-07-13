@@ -6,9 +6,17 @@ import json
 import os
 import requests
 
-""", derived from a list of
-    bundles, and assembles a remote-file-manifest configuration file
-    that's used to create a bdbag."""
+"""Creates a BDBag from a remote-file-manifest (see
+    https://github.com/fair-research/bdbag/blob/master/doc/config.md). The
+    input is a data bundle.
+
+    This class has a methods that processes the content of a list of DSS
+    data bundles, breaks it down to the level of data objects, and creates a
+    remote-manifest-file from those data objects. The remote-manifest-file is
+    then used as a configuration file to create a BDBag.
+    derived from a list of bundles, and assembles a remote-file-manifest 
+    configuration file that's used to create a bdbag."""
+
 
 def create_rfm_from_data_objects(base_url, service_url, data_object_id):
     """Returns a remote-file-manifest from a DSS data objects ID.
@@ -19,6 +27,11 @@ def create_rfm_from_data_objects(base_url, service_url, data_object_id):
     rfm = {}  # dict to hold the manifest
 
     dataobject = DSSDataObject(base_url, service_url, data_object_id)
+    dobj = dataobject.get_object()
+
+
+    keys = ['url', 'length', 'filename']
+    vals = [dataobject.data_object_url, ]
 
     return dataobject.get_object()['id']
 
@@ -97,52 +110,27 @@ class DSSDataObject:
 
     def __get_data_object_url(self):
         """
-        :return: (string) URL
+        :return: (string) URL as instance variable
         """
-        data_object_url = os.path.join(self.service_url,
-                                       self.base_url,
-                                       'dataobjects',
-                                       self.data_object_id)
-        return data_object_url
+        self.data_object_url = os.path.join(self.service_url,
+                                            self.base_url,
+                                            'dataobjects',
+                                            self.data_object_id)
 
     def get_object(self):
         """
-        
         :return: 
         """
-        data_object_url = self.__get_data_object_url()
-        data_object = requests.get(data_object_url).json()['data_object']
+        self.__get_data_object_url()
+        data_object = requests.get(self.data_object_url).json()['data_object']
         return data_object
 
+    def to_disk(self, json_fname):
+        """
+        
+        :return: writes data object to disk as JSON file 
+        """
+        data_object_json = json.dumps(self.get_object())
 
-# class RemoteToBag:
-#     """Creates a BDBag from a remote-file-manifest (see
-#     https://github.com/fair-research/bdbag/blob/master/doc/config.md). The
-#     input is a data bundle.
-#
-#     This class has a methods that processes the content of a list of DSS
-#     data bundles, breaks it down to the level of data objects, and creates a
-#     remote-manifest-file from those data objects. The remote-manifest-file is
-#     then used as a configuration file to create a BDBag.
-#     """
-#
-#     def __init__(self, base_url, service_url):
-#         self.base_url = base_url
-#         self.service_url = service_url
-#
-#     def get_data_object(self, data_bundle_idx):
-#         """
-#         :parameter idx: (integer) index to data bundle
-#         :return: (dict) data object
-#         """
-#         data_bundle = self.get_data_bundle(data_bundle_idx)
-#         return data_bundle
-#         # data_object_url = "{}/{}/dataobjects/{}".format(self.service_url,
-#         #                                                 self.base_url,
-#         #                                                 data_bundle['id'])
-#         # r = requests.get(data_object_url)
-#         # if r.status_code == 200:
-#         #     return r.json()['data_object']
-#         # else:
-#         #     return {'status_code': r.status_code}
-#
+        with open(json_fname, 'w') as fp:
+            json.dump(data_object_json, fp)
