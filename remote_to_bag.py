@@ -5,37 +5,21 @@ from bdbag import bdbag_api
 import json
 import os
 import requests
+from pprint import pprint
 
-# Code creates a BDBag from data bundles from the DSS. The bag is created
-# froma remote-file-manifest (see
-# https://github.com/fair-research/bdbag/blob/master/doc/config.md). The
-# input is a data bundle.
-#
-# This class has a methods that processes the content of a list of DSS
-# data bundles, breaks it down to the level of data objects, and creates a
-# remote-manifest-file from those data objects. The remote-manifest-file is
-# then used as a configuration file to create a BDBag.
-# derived from a list of bundles, and assembles a remote-file-manifest
-# configuration file that's used to create a bdbag.
+"""Create a BDBag using a remote-file-manifest (RFM)
+(see https://github.com/fair-research/bdbag/blob/master/doc/config.md). 
 
+The input is a list of DSS Data Bundles and iterates over those bundles. Each
+bundle contains a list of DSS Data Object ID. It iterates over the data
+objects (which are dictionaries). The code then reformats keys and values
+in those dictionaries and creates a list where each item represents the URL
+to the data object and additional information required by the 
+remote-manifest-file.
 
-def create_dict_for_rfm(base_url, service_url, data_object_id, local_fname_id):
-    """Returns a single dictionary of a remote-file-manifest, which is a 
-     list of dictionaries.
-    :parameter: 
-    :returns: (dict)"""
+The remote-manifest-file is then used as a configuration file to create a BDBag.
+"""
 
-    dataobject = DSSDataObject(base_url, service_url, data_object_id)
-    url_ = dataobject.data_object_url
-    length_ = dataobject.get_file_size()
-    filename_ = 'dss_data_object_' + str(local_fname_id)
-
-    keys = ['url', 'length', 'filename']
-    vals = [url_, length_, filename_]
-    d1 = dict(zip(keys, vals))
-    d2 = dataobject.get_checksums()
-
-    return dict(d1, **d2)  # concatenate
 
 def make_bag(self, rfm_fname):
     '''data_to_json'''
@@ -44,7 +28,48 @@ def make_bag(self, rfm_fname):
         json.dump(self.data_obj, fp)
 
 
+def create_list_of_dicts_for_rfm(data_bundles, service_url, base_url):
+    """Returns a list of list of dictionaries.
+    :param data_bundles: 
+    :param service_url: 
+    :param base_url: 
+    :return data_object_ids: (list) of RFM dictionaries
+    """
+    data_object_ids = []
+    for bundle_id in data_bundles:
+        bundle = DSSBundle(service_url, base_url, bundle_id['id'])
+        data_object_ids.extend(bundle.get_data_object_list())
+
+    L = []
+    for counter, data_object_id in enumerate(data_object_ids):
+        data_object = DSSDataObject(base_url, service_url, data_object_id)
+        L.append(create_dict_for_rfm(data_object, counter))
+
+    return L
+
+
+def create_dict_for_rfm(data_object, local_fname_id):
+    """Returns a single dictionary of a remote-file-manifest.
+     :parameter data_object: (obj) DSS Data Object
+     :parameter local_fname_id: (int) used a suffix to `file_name`
+     :returns: (dict): a dictionary whose keys are compliant with the RFM"""
+
+    url_ = data_object.data_object_url
+    length_ = data_object.get_file_size()
+    filename_ = 'dss_data_object_' + str(local_fname_id)
+
+    keys = ['url', 'length', 'filename']
+    vals = [url_, length_, filename_]
+    d1 = dict(zip(keys, vals))
+    d2 = data_object.get_checksums()
+
+    return dict(d1, **d2)  # concatenate
+
+
 class DSSDataObject:
+    """Contains methods to process DSS data objects to facilitate creation 
+    BDBags using remote-file-manifest. """
+
     def __init__(self, base_url, service_url, data_object_id):
         self.base_url = base_url
         self.service_url = service_url
@@ -57,7 +82,7 @@ class DSSDataObject:
 
     def get_object(self):
         """
-        :return: 
+        :return: DSS Data Object 
         """
         return self.data_object
 
@@ -89,7 +114,6 @@ class DSSDataObject:
 
     def to_disk(self, json_fname):
         """
-
         :return: writes data object to disk as JSON file 
         """
         data_object_json = json.dumps(self.data_object)
@@ -102,27 +126,31 @@ class DSSBundle:
     """Has a methods that operate on DSS Data Bundles.
     """
 
-    def __init__(self, base_url, service_url):
-        self.base_url = base_url
-        self.service_url = service_url
+    def __init__(self, service_url, base_url, data_bundle_id):
+        self.bundle_url = os.path.join(service_url, base_url,
+                                  'databundles', data_bundle_id)
+        self.data_bundle = requests.get(self.bundle_url).json()['data_bundle']
+
+    def display(self):
+        return pprint(self.data_bundle)
 
     def get_url(self):
-        """Return URL to DSS data bundles.
+        """Return URL to data bundle.
         :returns: (string) URL"""
-        return os.path.join(self.service_url,
-                            self.base_url,
-                            'databundles')
+        return self.bundle_url
 
-    def get_list(self):
+    def get_data_object_list(self):
         """Returns list of DSS data bundles.
         TODO: expand status code error checking.
-        :returns: (list) response object"""
-        data_bundles_url = self.get_url()
-        r = requests.get(data_bundles_url)
-        if r.status_code == 200:
-            return r.json()['data_bundles']
-        else:
-            return r
+        :returns: (list) containing data object IDs"""
+        return self.data_bundle['data_object_ids']
+
+
+    def get_num_data_objects(self):
+        """
+        :return n_data_objects: (int) number of DSS Data Objects 
+        """
+        return len(self.data_bundle['data_object_ids'])
 
     def __get_bundle(self, idx):
         """

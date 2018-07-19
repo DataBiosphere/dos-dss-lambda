@@ -8,6 +8,7 @@ from pprint import pprint
 from remote_to_bag import DSSBundle as Bundle
 from remote_to_bag import DSSDataObject as DataObject
 from remote_to_bag import create_dict_for_rfm
+from remote_to_bag import create_list_of_dicts_for_rfm
 from bdbag import bdbag_api
 
 class Test_RemoteToBag(unittest.TestCase):
@@ -40,6 +41,7 @@ class Test_RemoteToBag(unittest.TestCase):
         self.service_url = \
             "https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api"
         self.base_url = "ga4gh/dos/v1"
+
         self.data_object_id = '8ff23235-4435-4929-8fb2-5d55b4564999'
         self.aws_sample_url = 'https://commons-dss.ucsc-cgp-dev.org/v1/files/8ff23235-4435-4929-8fb2-5d55b4564999?replica=aws'
 
@@ -51,6 +53,14 @@ class Test_RemoteToBag(unittest.TestCase):
             'sha1': '05f818a54510272c17dcda69c948f8d904b5aae3',
             'sha256': 'c873835a74cea9c811cc7799f8897ac480cccf84f631c99b5293900f7a071b53',
             'url': 'https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api/ga4gh/dos/v1/dataobjects/8ff23235-4435-4929-8fb2-5d55b4564999'}
+
+        # List of bundles as retrieved in the notebook:
+        self.list_of_bundles = [{'id': 'e9556c3d-53cb-4c24-856e-951085735d45',
+                                 'version': '2018-06-07T001704'},
+                                {'id': '15a0ce60-261d-4bc1-8463-f4d87aa483f0',
+                                 'version': '2018-06-07T001659'},
+                                {'id': 'b7003567-37a6-4f70-8be3-0e8ee5c1f020',
+                                 'version': '2018-06-07T001844'}]
 
     def tearDown(self):
         os.remove('rfm.json')
@@ -70,53 +80,41 @@ class Test_RemoteToBag(unittest.TestCase):
                            remote_file_manifest=self.rfm_fname)
 
     def test_create_dict_for_rfm(self):
-        d = create_dict_for_rfm(self.base_url,
-                                         self.service_url,
-                                         self.data_object_id,
-                                         local_fname_id=5)
-
+        data_object = DataObject(self.base_url,
+                                 self.service_url, self.data_object_id)
+        d = create_dict_for_rfm(data_object, local_fname_id=5)
         self.assertTrue(len(d), 7)
         self.assertDictEqual(d, self.create_dict_for_rfm)
 
-    def test_return_file_size(self):
-
-        pprint(self.aws_sample_url)
-
-        r = requests.head(self.aws_sample_url)
-        pprint(r.status_code)
-        pprint(r.text)
-        d = r.headers
-        pprint(d)
+    def test_create_list_of_dicts_for_rfm(self):
+        L = create_list_of_dicts_for_rfm(self.list_of_bundles,
+                                         self.service_url, self.base_url)
+        self.assertEqual(len(L), 9)
 
 
 
 class TestDSSDataBundle(unittest.TestCase):
-
     def setUp(self):
         # Set URLs to data bundles.
         self.service_url = \
             "https://ekivlnizh1.execute-api.us-west-2.amazonaws.com/api"
         self.base_url = "ga4gh/dos/v1"
+        self.data_bundle_id = '41680495-06a3-4963-9d2c-9280c6e9979b'
+        self.bundle = Bundle(self.service_url,
+                             self.base_url, self.data_bundle_id)
 
     def tearDown(self):
         pass
 
-    def test_basic(self):
-        databundle = Bundle(self.base_url, self.service_url)
-        pprint(databundle.get_url())
-        pprint(databundle.get_list())
-        pprint(databundle.get_data_bundle(0))
-        pprint(databundle.list_data_object_ids(0))
+    def test_get_data_object_list(self):
+        L = ['e8d5b3b5-1a49-4765-8670-e39860cce6c5',
+             '82ca0d40-1d74-4da8-a059-49bc61de919c',
+             '4f321007-7560-4594-8c92-77b02d574c51']
 
-        # # Create remote-to-bag instance.
-        # rtb = RemoteToBag(self.base_url, self.service_url)
-        # print(rtb.get_data_bundles_url())
-        # pprint(rtb.get_data_bundles_list())
-        # bundle = rtb.get_data_bundle(1)
-        # pprint(bundle)
-        # pprint(bundle['id'])
-        # pprint(rtb.get_data_object(data_bundle_idx=1))
+        self.assertListEqual(self.bundle.get_data_object_list(), L)
 
+    def test_get_num_data_objects(self):
+        self.assertEqual(self.bundle.get_num_data_objects(), 3)
 
 
 class TestDSSDataObject(unittest.TestCase):
