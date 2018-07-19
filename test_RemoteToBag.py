@@ -92,7 +92,6 @@ class Test_RemoteToBag(unittest.TestCase):
         self.assertEqual(len(L), 9)
 
 
-
 class TestDSSDataBundle(unittest.TestCase):
     def setUp(self):
         # Set URLs to data bundles.
@@ -102,9 +101,6 @@ class TestDSSDataBundle(unittest.TestCase):
         self.data_bundle_id = '41680495-06a3-4963-9d2c-9280c6e9979b'
         self.bundle = Bundle(self.service_url,
                              self.base_url, self.data_bundle_id)
-
-    def tearDown(self):
-        pass
 
     def test_get_data_object_list(self):
         L = ['e8d5b3b5-1a49-4765-8670-e39860cce6c5',
@@ -127,22 +123,6 @@ class TestDSSDataObject(unittest.TestCase):
         self.base_url = "ga4gh/dos/v1"
         self.data_object_id1 = '8ff23235-4435-4929-8fb2-5d55b4564999'
         self.data_object_id2 = '46df9ac5-0e72-4aa5-8e6b-6b55b362c29a'
-
-    def tearDown(self):
-        pass
-
-    def test_get_object(self):
-
-        dataobject = DataObject(self.base_url,
-                                self.service_url,
-                                self.data_object_id1)
-
-        pprint(dataobject.get_object())
-
-        dataobject = DataObject(self.base_url,
-                                self.service_url,
-                                self.data_object_id2)
-        pprint(dataobject.get_object())
 
     def test_get_file_size(self):
         # Size from object.
