@@ -4,13 +4,13 @@ import unittest
 import os
 import json
 import requests
-from pprint import pprint
+import shutil
+from bdbag import bdbag_api
 from remote_to_bag import DSSBundle as Bundle
 from remote_to_bag import DSSDataObject as DataObject
-from remote_to_bag import create_dict_for_rfm
-from remote_to_bag import create_list_of_dicts_for_rfm
-from remote_to_bag import make_bag
-from bdbag import bdbag_api
+from remote_to_bag import create_dict_for_rfm, \
+    create_list_of_dicts_for_rfm, make_bag
+
 
 class Test_RemoteToBag(unittest.TestCase):
 
@@ -97,8 +97,18 @@ class Test_RemoteToBag(unittest.TestCase):
         self.assertEqual(len(L), 9)
 
     def test_make_bag(self):
-        p = make_bag(self.list_of_bundles, self.service_url, self.base_url)
-        print(p)
+        # Write a bag into the current directory.
+        # TODO: create better test, e.g., compare the bag to existing bag
+        make_bag(self.list_of_bundles, self.service_url, self.base_url)
+        with open('bag_path/fetch.txt', 'r') as fp:
+            data = fp.read()
+        # There are three URLs in the BDBag.
+        self.assertEqual(data.count('\n'), 3)
+        # Make sure each line starts with `https`.
+        self.assertTrue(
+            all([line.startswith('https') for line in data.splitlines()]))
+        shutil.rmtree('bag_path')
+
 
 
 class TestDSSDataBundle(unittest.TestCase):
@@ -115,7 +125,6 @@ class TestDSSDataBundle(unittest.TestCase):
         L = ['e8d5b3b5-1a49-4765-8670-e39860cce6c5',
              '82ca0d40-1d74-4da8-a059-49bc61de919c',
              '4f321007-7560-4594-8c92-77b02d574c51']
-
         self.assertListEqual(self.bundle.get_data_object_list(), L)
 
     def test_get_num_data_objects(self):
@@ -138,7 +147,6 @@ class TestDSSDataObject(unittest.TestCase):
         dataobject = DataObject(self.base_url,
                                 self.service_url,
                                 self.data_object_id2)
-
         d = dataobject.get_object()
         self.assertEqual(dataobject.get_file_size(), d['size'])
 
@@ -157,6 +165,5 @@ class TestDSSDataObject(unittest.TestCase):
                                 self.service_url,
                                 self.data_object_id1)
         d = dataobject.get_checksums()
-
         self.assertEqual(d['sha1'], '05f818a54510272c17dcda69c948f8d904b5aae3')
 

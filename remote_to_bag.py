@@ -14,9 +14,9 @@ from pprint import pprint
 The input is a list of DSS Data Bundles and iterates over those bundles. Each
 bundle contains a list of DSS Data Object ID. It iterates over the data
 objects (which are dictionaries). The code then reformats keys and values
-in those dictionaries and creates a list where each item represents the URL
-to the data object and additional information required by the 
-remote-manifest-file.
+in those dictionaries and creates a list of JSON objects where each object
+represents (among others) the URL to the data object and additional 
+information required by the remote-manifest-file.
 
 The remote-manifest-file is then used as a configuration file to create a BDBag.
 """
@@ -26,31 +26,33 @@ def make_bag(data_bundles, service_url, base_url):
     """
     Takes a list of remote-file-manifest compliant dictionaries, writes
     them to a temporary file, and creates a BDBag from it.
-    The inputs to the bdbag_api method is a bit confusing. 
-    :param self: 
-    :param data_bundles: 
-    :param rfm_fname: 
-    :return: 
+    The inputs to the bdbag_api method is a bit confusing.
+     :param data_bundles: list of data bundle dictionaries
+     :param service_url: URL to AWS lambda
+     :param base_url: URL to GA4GH 
+     :return: none, but it writes a BDBag into `bag_path`.
     """
     L = create_list_of_dicts_for_rfm(data_bundles, service_url, base_url)
 
     bag_path = os.path.join(os.getcwd(), 'bag_path')
     old_path = os.getcwd()
-    # Create temporary directory and write out JSON file.
+
+    # Create temporary directory so we don't need to worry about filename
+    # concurrency problems.
     tmp_dir = tempfile.mkdtemp()
     os.chdir(tmp_dir)
+
+    # Write list of dictionaries as JSON file to temporary directory.
     rfm_fname = os.path.join(os.getcwd(), 'remote-file-manifest.json')
     with open(rfm_fname, 'w') as fp:
         json.dump(L, fp)
-    # Create BDBag in temporary directory.
     bdbag_api.ensure_bag_path_exists(bag_path)
+    # NOTE: etag or crc32c hashed checksums are not supported by this package.
     bdbag_api.make_bag(bag_path,
-                       algs=['sha256'],
+                       algs=['sha1', 'sha256', 'sha512'],
                        remote_file_manifest=rfm_fname)
     os.chdir(old_path)
     shutil.rmtree(tmp_dir)
-
-    #return os.path.abspath(rfm_fname)
 
 
 def create_list_of_dicts_for_rfm(data_bundles, service_url, base_url):
@@ -67,9 +69,11 @@ def create_list_of_dicts_for_rfm(data_bundles, service_url, base_url):
         data_object_ids.extend(bundle.get_data_object_list())
 
     L = []  # to sample list of dictionaries
-    for fname_id, data_object_id in enumerate(data_object_ids):
+    fname_id = 0
+    for data_object_id in data_object_ids:
         data_object = DSSDataObject(base_url, service_url, data_object_id)
         L.append(create_dict_for_rfm(data_object, fname_id))
+        fname_id += 1
 
     return L
 
@@ -104,7 +108,8 @@ class DSSDataObject:
                                             self.base_url,
                                             'dataobjects',
                                             self.data_object_id)
-        self.data_object = requests.get(self.data_object_url).json()['data_object']
+        self.data_object = requests.get(
+            self.data_object_url).json()['data_object']
 
     def get_object(self):
         """
@@ -154,7 +159,7 @@ class DSSBundle:
 
     def __init__(self, service_url, base_url, data_bundle_id):
         self.bundle_url = os.path.join(service_url, base_url,
-                                  'databundles', data_bundle_id)
+                                       'databundles', data_bundle_id)
         self.data_bundle = requests.get(self.bundle_url).json()['data_bundle']
 
     def display(self):
@@ -171,41 +176,8 @@ class DSSBundle:
         :returns: (list) containing data object IDs"""
         return self.data_bundle['data_object_ids']
 
-
     def get_num_data_objects(self):
         """
         :return n_data_objects: (int) number of DSS Data Objects 
         """
         return len(self.data_bundle['data_object_ids'])
-
-    def __get_bundle(self, idx):
-        """
-        :returns (dict) one DSS data bundle"""
-
-        data_bundles = self.get_list()
-        try:
-            bundle = data_bundles[idx]
-        except IndexError:
-            bundle = 'index out of range'
-        return bundle
-
-    def get_data_bundle(self, bundle_idx):
-        """
-        :param bundle_idx: (integer) the index of the bundle in the list
-        :return: (dict) DSS data bundle
-        """
-        bundle_id = self.__get_bundle(bundle_idx)['id']
-        bundle_url = os.path.join(self.service_url,
-                                  self.base_url,
-                                  'databundles',
-                                  bundle_id)
-        bundle = requests.get(bundle_url).json()['data_bundle']
-        return bundle
-
-    def list_data_object_ids(self, bundle_idx):
-        """   
-        :param bundle_idx: 
-        :return: (list) of DSS data object IDs
-        """
-        bundle = self.get_data_bundle(bundle_idx)
-        return bundle['data_object_ids']
