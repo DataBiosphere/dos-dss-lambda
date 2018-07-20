@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-
 from bdbag import bdbag_api
 import json
 import os
+import shutil
 import requests
+import tempfile
 from pprint import pprint
 
 """Create a BDBag using a remote-file-manifest (RFM)
@@ -21,29 +22,54 @@ The remote-manifest-file is then used as a configuration file to create a BDBag.
 """
 
 
-def make_bag(self, rfm_fname):
-    '''data_to_json'''
-    rfm_fname = 'remote-file-manifest.json'
+def make_bag(data_bundles, service_url, base_url):
+    """
+    Takes a list of remote-file-manifest compliant dictionaries, writes
+    them to a temporary file, and creates a BDBag from it.
+    The inputs to the bdbag_api method is a bit confusing. 
+    :param self: 
+    :param data_bundles: 
+    :param rfm_fname: 
+    :return: 
+    """
+    L = create_list_of_dicts_for_rfm(data_bundles, service_url, base_url)
+
+    bag_path = os.path.join(os.getcwd(), 'bag_path')
+    old_path = os.getcwd()
+    # Create temporary directory and write out JSON file.
+    tmp_dir = tempfile.mkdtemp()
+    os.chdir(tmp_dir)
+    rfm_fname = os.path.join(os.getcwd(), 'remote-file-manifest.json')
     with open(rfm_fname, 'w') as fp:
-        json.dump(self.data_obj, fp)
+        json.dump(L, fp)
+    # Create BDBag in temporary directory.
+    bdbag_api.ensure_bag_path_exists(bag_path)
+    bdbag_api.make_bag(bag_path,
+                       algs=['sha256'],
+                       remote_file_manifest=rfm_fname)
+    os.chdir(old_path)
+    shutil.rmtree(tmp_dir)
+
+    #return os.path.abspath(rfm_fname)
 
 
 def create_list_of_dicts_for_rfm(data_bundles, service_url, base_url):
-    """Returns a list of list of dictionaries.
+    """Returns a list of dictionaries, which are compliant with the 
+    remote-file-manifest format.
     :param data_bundles: 
     :param service_url: 
     :param base_url: 
     :return data_object_ids: (list) of RFM dictionaries
     """
-    data_object_ids = []
+    data_object_ids = []  # list of data object IDs
     for bundle_id in data_bundles:
         bundle = DSSBundle(service_url, base_url, bundle_id['id'])
         data_object_ids.extend(bundle.get_data_object_list())
 
-    L = []
-    for counter, data_object_id in enumerate(data_object_ids):
+    L = []  # to sample list of dictionaries
+    for fname_id, data_object_id in enumerate(data_object_ids):
         data_object = DSSDataObject(base_url, service_url, data_object_id)
-        L.append(create_dict_for_rfm(data_object, counter))
+        L.append(create_dict_for_rfm(data_object, fname_id))
 
     return L
 

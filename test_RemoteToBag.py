@@ -9,6 +9,7 @@ from remote_to_bag import DSSBundle as Bundle
 from remote_to_bag import DSSDataObject as DataObject
 from remote_to_bag import create_dict_for_rfm
 from remote_to_bag import create_list_of_dicts_for_rfm
+from remote_to_bag import make_bag
 from bdbag import bdbag_api
 
 class Test_RemoteToBag(unittest.TestCase):
@@ -32,10 +33,12 @@ class Test_RemoteToBag(unittest.TestCase):
             }
         ]
 
+        # Set up the file paths for BDBag creation.
+        self.bag_path = os.path.join(os.getcwd(), 'bag_path')
         self.rfm_fname = os.path.join(os.getcwd(), 'rfm.json')
         with open(self.rfm_fname, 'w') as fp:
             json.dump(self.remote_file_manifest, fp)
-        self.bag_path = os.path.join(os.getcwd(), 'bag_path')
+
 
         # Set URLs to data bundles.
         self.service_url = \
@@ -89,7 +92,13 @@ class Test_RemoteToBag(unittest.TestCase):
     def test_create_list_of_dicts_for_rfm(self):
         L = create_list_of_dicts_for_rfm(self.list_of_bundles,
                                          self.service_url, self.base_url)
+        self.assertTrue(type(L) == list)
+        self.assertTrue(type(L[0] == dict))
         self.assertEqual(len(L), 9)
+
+    def test_make_bag(self):
+        p = make_bag(self.list_of_bundles, self.service_url, self.base_url)
+        print(p)
 
 
 class TestDSSDataBundle(unittest.TestCase):
