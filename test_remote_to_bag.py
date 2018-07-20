@@ -11,7 +11,6 @@ from remote_to_bag import DSSDataObject as DataObject
 from remote_to_bag import create_dict_for_rfm, \
     create_list_of_dicts_for_rfm, make_bag
 
-
 class Test_RemoteToBag(unittest.TestCase):
 
     def setUp(self):
