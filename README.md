@@ -58,6 +58,11 @@ not from DOS.
      can be a challenge.
 * Filter by URL
   *  Retrieve bundle entries by their URL to satisfy the DOS List request.
+  
+#### Creating BDBags using the `dss-dos-lambda`
+Using a list of DSS Data Bundles you can create a remote-file-manifest (RFM). That
+RFM is then used to create a [BDBag](https://github.com/fair-research/bdbag/blob/master/doc/config.md)
+(see `create_bdbag_via_dss-dos-lambda` Jupyter notebook).
 
 ### Installing and Deploying
 
