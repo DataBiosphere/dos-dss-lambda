@@ -11,8 +11,21 @@ import urlparse
 import logging
 
 from chalice import Chalice, Response
+import hca.dss
 
-DSS_URL = "https://commons-dss.ucsc-cgp-dev.org/v1"
+# If DSS_ENDPOINT is set, make sure it doesn't have a trailing /
+DSS_ENDPOINT = 'https://commons-dss.ucsc-cgp-dev.org/v1'
+
+# tweak, which underpins the :class:`~hca.HCAConfig` object, will try to
+# create a config directory if one does not exist. This is fine if we're
+# running locally, but not so much if this is deployed on AWS Lambda as
+# the home directory is read-only. AWS Lambda provides /tmp as a non-persistent
+# staging area, so we set the `_user_config_home` variable to /tmp so that
+# dos-dss-lambda doesn't die when we try to instantiate :class:`~hca.dss.DSSClient`.
+hca.HCAConfig._user_config_home = '/tmp/'
+config = hca.HCAConfig(save_on_exit=False, autosave=False)
+config['DSSClient'].swagger_url = DSS_ENDPOINT + '/swagger.json'
+dss = hca.dss.DSSClient(config=config)
 
 app = Chalice(app_name='dos-indexd-lambda', debug=True)
 app.log.setLevel(logging.DEBUG)
@@ -109,7 +122,7 @@ def make_urls(object_id, path):
     replicas = ['aws', 'azure', 'gcp']
     urls = map(
         lambda replica: {'url' : '{}/{}/{}?replica={}'.format(
-            DSS_URL, path, object_id, replica)},
+            DSS_ENDPOINT, path, object_id, replica)},
         replicas)
     return urls
 
@@ -141,7 +154,7 @@ def get_data_object(data_object_id):
     :param data_object_id:
     :return:
     """
-    dss_response = requests.head("{}/files/{}?replica=aws".format(DSS_URL, data_object_id))
+    dss_response = dss.head_file(uuid=data_object_id, replica='aws')
     dss_file = dss_response.headers
     if not dss_response.status_code == 200:
         return Response({'msg': 'Data Object with data_object_id {} was not found.'.format(data_object_id)}, status_code=404)
@@ -149,7 +162,7 @@ def get_data_object(data_object_id):
     # FIXME download the extra metadata if its a file by reference
     content_key = 'fileref'
     if data_object['content_type'].find(content_key) != -1:
-        reference_json = requests.get('{}/files/{}?replica=aws'.format(DSS_URL, data_object_id)).json()
+        reference_json = dss.get_file(replica='aws', uuid=data_object_id)
         try:
             data_object = convert_reference_json(reference_json, data_object)
         except Exception as e:
@@ -160,8 +173,7 @@ def get_data_object(data_object_id):
         for replica in replicas:
             # TODO make async
             try:
-                data_bundle = requests.get(
-                    "{}/bundles/{}?replica={}&directurls=true".format(DSS_URL, dss_file['X-DSS-BUNDLE-UUID'], replica))
+                data_bundle = dss.get_bundle(uuid=dss_file['X-DSS-BUNDLE-UUID'], replica=replica)
                 url = filter(lambda x: x['uuid'] == data_object_id, data_bundle.json()['bundle']['files'])[0]['url']
                 data_object['urls'].append({'url': url})
             except Exception as e:
@@ -191,26 +203,28 @@ def list_data_bundles():
     per_page = 10
     page_token = None
     next_page_token = None
-    if req_body and (req_body.get('page_size', None)):
-        per_page = req_body.get('page_size')
-    if req_body and (req_body.get('page_token', None)):
-        page_token = req_body.get('page_token')
+    if req_body and req_body.get('page_size', None):
+        per_page = req_body['page_size']
+    if req_body and req_body.get('page_token', None):
+        page_token = req_body['page_token']
+    # We use DSSClient().post_search._request to expose the underlying
+    # :class:`~requests.Request` object so that we can access the pagination
+    # headers. :func:`~DSSClient().post_search._request` is undocumented.
+    # The source code for the method is here:
+    # https://github.com/HumanCellAtlas/dcp-cli/blob/aa811490d3c680018f6c1abeef3292098556b0ea/hca/util/__init__.py#L119
     if page_token:
-        res = requests.post(
-            "{}/search?replica=aws&per_page={}&_scroll_id={}".format(
-                DSS_URL, per_page, page_token), json={'es_query': {}})
+        res = dss.post_search._request(dict(replica='aws', per_page=per_page,
+                                            search_after=page_token, es_query={}))
     else:
-        res = requests.post(
-            "{}/search?replica=aws&per_page={}".format(
-                DSS_URL, per_page), json={'es_query': {}})
+        res = dss.post_search._request(dict(replica='aws', per_page=per_page, es_query={}))
     # We need to page using the github style
     if res.links.get('next', None):
         try:
-            # first _scroll_id item of the query string in the link
+            # first search_after item of the query string in the link
             # header of the response
             next_page_token = urlparse.parse_qs(
                 urlparse.urlparse(
-                    res.links['next']['url']).query)['_scroll_id'][0]
+                    res.links['next']['url']).query)['search_after'][0]
         except Exception as e:
             print(e)
     # And convert the fqid message into a DOS id and version
@@ -234,14 +248,8 @@ def get_data_bundle(data_bundle_id):
     version = None
     if app.current_request.query_params:
         version = app.current_request.query_params.get('version', None)
-    if version:
-        res = requests.get("{}/bundles/{}?replica=aws&version={}".format(
-            DSS_URL, data_bundle_id, version)).json()
-    else:
-        res = requests.get(
-            "{}/bundles/{}?replica=aws".format(DSS_URL, data_bundle_id)).json()
-    return {'data_bundle': dss_bundle_to_dos(res['bundle'])}
-
+    bdl = dss.get_bundle(version=version, replica='aws', uuid=data_bundle_id)
+    return {'data_bundle': dss_bundle_to_dos(bdl['bundle'])}
 
 
 @app.route('/')
