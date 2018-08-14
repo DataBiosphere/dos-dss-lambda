@@ -28,6 +28,19 @@ local_client.ListDataBundles().result()
 
 For more information refer to the [Data Object Service](https://github.com/ga4gh/data-object-service-schemas).
 
+### Authentication
+
+If you're using a DSS endpoint that requires authentication, you'll need to
+include Google Cloud Platform credentials in the form of a `gcp-credentials.json`
+file. You can create that file by following steps 2 and 3
+[here](https://github.com/HumanCellAtlas/data-store#gcp).
+
+Once you have your credential file, move it to the `chalicelib/` directory so
+that it's included in the Lambda deployment package, then specify the file to
+dos-dss-lambda by setting the `GOOGLE_APPLICATION_CREDENTIALS` environment
+variable to the JSON file path (i.e. `chalicelib/gcp-credentials.json`) in
+`.chalice/config.json`.
+
 ## Development
 
 ### Status
@@ -58,7 +71,7 @@ not from DOS.
      can be a challenge.
 * Filter by URL
   *  Retrieve bundle entries by their URL to satisfy the DOS List request.
-  
+
 #### Creating BDBags using the `dss-dos-lambda`
 Using a list of DSS Data Bundles you can create a remote-file-manifest (RFM). That
 RFM is then used to create a [BDBag](https://github.com/fair-research/bdbag/blob/master/doc/config.md)
@@ -101,13 +114,13 @@ over to [the Issues](https://github.com/DataBiosphere/dos-dss-lambda/issues) to 
 * Aliases
 * Filter by URL
 
-```                                                                                         
+```
 +------------------+      +--------------+        +--------+
 | ga4gh-dos-client |------|dos-dss-lambda|--------|DSS API |
 +--------|---------+      +--------------+        +--------+
-         |                        |                                                         
-         |                        |                                                         
-         |------------------swagger.json                                                    
+         |                        |
+         |                        |
+         |------------------swagger.json
 ```
 
 We have created a lambda that creates a lightweight layer that can be used
