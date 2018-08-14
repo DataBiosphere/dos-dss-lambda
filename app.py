@@ -9,12 +9,13 @@ import requests
 import yaml
 import urlparse
 import logging
+import os
 
 from chalice import Chalice, Response
 import hca.dss
 
 # If DSS_ENDPOINT is set, make sure it doesn't have a trailing /
-DSS_ENDPOINT = 'https://commons-dss.ucsc-cgp-dev.org/v1'
+DSS_ENDPOINT = os.environ.get('DSS_ENDPOINT', 'https://commons-dss.ucsc-cgp-dev.org/v1')
 
 # tweak, which underpins the :class:`~hca.HCAConfig` object, will try to
 # create a config directory if one does not exist. This is fine if we're
