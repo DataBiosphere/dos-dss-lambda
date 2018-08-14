@@ -1,9 +1,27 @@
 {
   "stages": {
     "dev": {
-      "api_gateway_stage": "api"
+      "api_gateway_stage": "dev",
+      "environment_variables": {
+        "DSS_ENDPOINT": "https://commons-dss.ucsc-cgp-dev.org/v1"
+      }
+    },
+    "staging": {
+      "api_gateway_stage": "staging",
+      "environment_variables": {
+        "DSS_ENDPOINT": "https://commons-dss.ucsc-cgp.org/v1"
+      }
+    },
+    "prod": {
+      "api_gateway_stage": "prod",
+      "environment_variables": {
+        "DSS_ENDPOINT": "https://commons-dss.ucsc-cgp.org/v1"
+      }
     }
   }, 
   "version": "2.0", 
-  "app_name": "dos-dss-lambda"
+  "app_name": "dos-dss-lambda",
+  "environment_variables": {
+    "GOOGLE_APPLICATION_CREDENTIALS": "chalicelib/gcp-credentials.json"
+  }
 }
