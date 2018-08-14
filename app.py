@@ -1,18 +1,17 @@
 """
-dos-indexd-lambda
-This lambda proxies requests to the necessary indexd endpoints and converts them
-to GA4GH messages.
+dos-dss-lambda
+This lambda proxies requests to the necessary DSS endpoints and converts them
+to DOS messages.
 
 """
-
-import requests
-import yaml
-import urlparse
 import logging
 import os
+import urlparse
 
 from chalice import Chalice, Response
 import hca.dss
+import requests
+import yaml
 
 # If DSS_ENDPOINT is set, make sure it doesn't have a trailing /
 DSS_ENDPOINT = os.environ.get('DSS_ENDPOINT', 'https://commons-dss.ucsc-cgp-dev.org/v1')
@@ -28,7 +27,7 @@ config = hca.HCAConfig(save_on_exit=False, autosave=False)
 config['DSSClient'].swagger_url = DSS_ENDPOINT + '/swagger.json'
 dss = hca.dss.DSSClient(config=config)
 
-app = Chalice(app_name='dos-indexd-lambda', debug=True)
+app = Chalice(app_name='dos-dss-lambda', debug=True)
 app.log.setLevel(logging.DEBUG)
 
 
@@ -84,6 +83,7 @@ def dss_list_bundle_to_dos(dss_bundle):
     #         dos_bundle['data_object_ids'].append(file['uuid'])
     return dos_bundle
 
+
 def dss_bundle_to_dos(dss_bundle):
     """
     Converts a fully formatted DSS bundle into a DOS bundle.
@@ -122,7 +122,7 @@ def make_urls(object_id, path):
     """
     replicas = ['aws', 'azure', 'gcp']
     urls = map(
-        lambda replica: {'url' : '{}/{}/{}?replica={}'.format(
+        lambda replica: {'url': '{}/{}/{}?replica={}'.format(
             DSS_ENDPOINT, path, object_id, replica)},
         replicas)
     return urls
@@ -146,6 +146,7 @@ def convert_reference_json(reference_json, data_object):
     data_object['checksums'] = [{'checksum': reference_json['crc32c'], 'type': 'crc32c'}]
     data_object['content_type'] = reference_json['content-type']
     return data_object
+
 
 @app.route('/ga4gh/dos/v1/dataobjects/{data_object_id}', methods=['GET'], cors=True)
 def get_data_object(data_object_id):
@@ -180,6 +181,7 @@ def get_data_object(data_object_id):
             except Exception as e:
                 pass
     return {'data_object': data_object}
+
 
 @app.route('/ga4gh/dos/v1/dataobjects', methods=['GET'], cors=True)
 def list_data_objects():
@@ -237,6 +239,7 @@ def list_data_bundles():
         response = e
     finally:
         return response
+
 
 @app.route('/ga4gh/dos/v1/databundles/{data_bundle_id}', methods=['GET'], cors=True)
 def get_data_bundle(data_bundle_id):
