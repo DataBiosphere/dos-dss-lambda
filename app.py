@@ -6,7 +6,10 @@ to DOS messages.
 """
 import logging
 import os
-import urlparse
+try:
+    import urllib.parse as urlparse  # For Python 3 compat
+except ImportError:
+    import urlparse
 
 from chalice import Chalice, Response
 import hca.dss
@@ -121,10 +124,8 @@ def make_urls(object_id, path):
     :return:
     """
     replicas = ['aws', 'azure', 'gcp']
-    urls = map(
-        lambda replica: {'url': '{}/{}/{}?replica={}'.format(
-            DSS_ENDPOINT, path, object_id, replica)},
-        replicas)
+    urls = [{'url': '{}/{}/{}?replica={}'.format(
+            DSS_ENDPOINT, path, object_id, replica)} for replica in replicas]
     return urls
 
 
@@ -142,7 +143,7 @@ def convert_reference_json(reference_json, data_object):
     # u'url': [u'gs://topmed-irc-share/genomes/NWD145710.b38.irc.v1.cram',
     # u's3://nih-nhlbi-datacommons/NWD145710.b38.irc.v1.cram']}
     data_object['size'] = reference_json['size']
-    data_object['urls'] = map(lambda x: {'url': x}, reference_json['url'])
+    data_object['urls'] = [{'url': x} for x in reference_json['url']]
     data_object['checksums'] = [{'checksum': reference_json['crc32c'], 'type': 'crc32c'}]
     data_object['content_type'] = reference_json['content-type']
     return data_object
@@ -222,19 +223,16 @@ def list_data_bundles():
         res = dss.post_search._request(dict(replica='aws', per_page=per_page, es_query={}))
     # We need to page using the github style
     if res.links.get('next', None):
-        try:
-            # first search_after item of the query string in the link
-            # header of the response
-            next_page_token = urlparse.parse_qs(
-                urlparse.urlparse(
-                    res.links['next']['url']).query)['search_after'][0]
-        except Exception as e:
-            print(e)
+        # first search_after item of the query string in the link
+        # header of the response
+        next_page_token = urlparse.parse_qs(
+            urlparse.urlparse(
+                res.links['next']['url']).query)['search_after'][0]
     # And convert the fqid message into a DOS id and version
     response = {}
     response['next_page_token'] = next_page_token
     try:
-        response['data_bundles'] = map(dss_list_bundle_to_dos, res.json()['results'])
+        response['data_bundles'] = list(map(dss_list_bundle_to_dos, res.json()['results']))
     except Exception as e:
         response = e
     finally:
