@@ -106,6 +106,10 @@ This notebook will guide you through basic read access to data in the DSS via DO
 If you have a problem accessing the service or deploying it for yourself, please head
 over to [the Issues](https://github.com/DataBiosphere/dos-dss-lambda/issues) to let us know!
 
+### Release strategy
+
+Releases are marked with a GitHub Release and a tagged commit in the format `x.y.z`. At the time of writing, this project
+is not being continuously deployed.
 
 ## TODO
 
